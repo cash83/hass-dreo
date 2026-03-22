@@ -93,6 +93,11 @@ from homeassistant.components.number import (
     NumberEntityDescription
 )
 
+from homeassistant.components.select import (
+    SelectEntity,
+    SelectEntityDescription
+)
+
 from homeassistant.components.light import (
     LightEntity,
     LightEntityFeature,

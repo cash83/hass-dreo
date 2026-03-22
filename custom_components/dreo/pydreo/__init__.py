@@ -30,7 +30,7 @@ from .pydreoevaporativecooler import PyDreoEvaporativeCooler
 
 _LOGGER = logging.getLogger(__name__)
 
-_COMMAND_ACK_TIMEOUT = 2  # seconds to wait for server to confirm command
+_COMMAND_ACK_TIMEOUT = 8  # seconds to wait for server to confirm command
 _ACK_METHOD_NAME = "control-report"  # wait for device confirmation
 _MAX_COMMAND_RETRIES = 2  # retry failed commands up to this many times
 
@@ -430,7 +430,7 @@ class PyDreo:  # pylint: disable=function-redefined
     
     def call_dreo_api(self, api: str, json_object: Optional[dict] = None) -> tuple:
         """Call the Dreo API. This is used for login and the initial device list and states as well
-           as device settings. Automatically retries once on 401 (token expired)."""
+           as device settings."""
         _LOGGER.debug("call_dreo_api: Calling Dreo API: {%s}", api)
         api_url = DREO_API_URL_FORMAT.format(self.api_server_region)
 
@@ -439,7 +439,7 @@ class PyDreo:  # pylint: disable=function-redefined
 
         json_object_full = {**Helpers.req_body(self, api), **json_object}
 
-        response, status_code = Helpers.call_api(
+        return Helpers.call_api(
             api_url,
             DREO_APIS[api][DREO_API_PATH],
             DREO_APIS[api][DREO_API_METHOD],
@@ -477,6 +477,7 @@ class PyDreo:  # pylint: disable=function-redefined
             return True
         _LOGGER.error("_re_login: Re-login failed")
         return False
+
 
     def start_transport(self) -> None:
         """Initialize the websocket and start transport"""
@@ -516,46 +517,22 @@ class PyDreo:  # pylint: disable=function-redefined
 
     def send_command(self, device: PyDreoBaseDevice, params) -> None:
         """Send a command to Dreo servers via the WebSocket."""
+        full_params = {
+            "devicesn": device.serial_number,
+            "method": "control",
+            "params": params,
+            "timestamp": Helpers.api_timestamp(),
+        }
+        content = json.dumps(full_params)
+        _LOGGER.debug("send_command: %s", content)
+
         if self.debug_test_mode:
-            _LOGGER.debug("send_command: Debug Test Mode enabled. Simulating ack...")
-            self._transport_consume_message({
-                "devicesn": device.serial_number,
-                "method": "control-report",
-                "reported": params
-            })
-            return
-
-        for attempt in range(_MAX_COMMAND_RETRIES + 1):
-            full_params = {
-                "devicesn": device.serial_number,
-                "method": "control",
-                "params": params,
-                "timestamp": Helpers.api_timestamp(),
-            }
-            content = json.dumps(full_params)
-
-            if attempt > 0:
-                _LOGGER.info("send_command: Retry %d for %s: %s", attempt, device.name, params)
-            else:
-                _LOGGER.debug("send_command: %s", content)
-
-            self._reserve_command_slot(device.serial_number, params)
-
-            try:
-                self._transport.send_message(content)
-            except Exception:  # pylint: disable=broad-except
-                self._release_command_slot()
-                raise
-
-            ack_received = self._wait_for_command_ack(device)
-            if ack_received:
-                return  # Success!
-
-            # Timeout - will retry if attempts remain
-            if attempt < _MAX_COMMAND_RETRIES:
-                _LOGGER.warning("send_command: No ack for %s, will retry...", device.name)
-
-        _LOGGER.warning("send_command: Failed after %d retries for %s", _MAX_COMMAND_RETRIES, device.name)
+            _LOGGER.debug("send_command: Debug Test Mode is enabled.  Pretending we received the message...")
+            self._transport_consume_message({"devicesn": device.serial_number,
+                                             "method": "report",
+                                             "reported": params})
+        else:
+            self._transport.send_message(content)
 
     def _reserve_command_slot(self, device_sn: str, params: dict) -> None:
         """Wait until no other command is in-flight, then reserve slot."""
@@ -591,7 +568,13 @@ class PyDreo:  # pylint: disable=function-redefined
             return ack_received
 
     def _handle_command_ack(self, device_sn: Optional[str], method: Optional[str], reported: Optional[dict]) -> None:
-        """Signal ack received when server sends control-report with matching params."""
+        """Signal ack received when server sends control-report for our device.
+
+        Some Dreo devices (e.g. humidifier) do not echo back the changed parameter
+        in the control-report, so strict param matching would always fail.
+        Any control-report for the correct device is therefore treated as an ACK;
+        the actual resulting state is updated separately by handle_server_update.
+        """
         if device_sn is None or method != _ACK_METHOD_NAME:
             return
         _LOGGER.debug("_handle_command_ack: Got %s for %s, pending=%s, reported=%s",
@@ -600,22 +583,10 @@ class PyDreo:  # pylint: disable=function-redefined
             if self._pending_command_device != device_sn:
                 _LOGGER.debug("_handle_command_ack: Ignoring, pending device is %s", self._pending_command_device)
                 return
-            # Check if reported params match what we sent
-            if self._pending_command_params and reported:
-                for key, value in self._pending_command_params.items():
-                    if key in reported and reported[key] == value:
-                        _LOGGER.debug("_handle_command_ack: Params match on %s=%s, signaling ack", key, value)
-                        self._ack_received = True
-                        self._command_condition.notify_all()
-                        return
-                # No matching params - this is ACK for a different command
-                _LOGGER.debug("_handle_command_ack: Ignoring, params don't match. Expected %s, got %s",
-                              self._pending_command_params, reported)
-            else:
-                # Fallback: if no params to match, just check device
-                _LOGGER.debug("_handle_command_ack: Signaling ack for %s (no params to match)", device_sn)
-                self._ack_received = True
-                self._command_condition.notify_all()
+            # Accept any control-report for the correct device as an ACK.
+            _LOGGER.debug("_handle_command_ack: Signaling ack for %s, reported=%s", device_sn, reported)
+            self._ack_received = True
+            self._command_condition.notify_all()
 
     def _clear_pending_command_locked(self) -> None:
         """Reset pending command (must hold condition lock)."""

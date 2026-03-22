@@ -133,6 +133,26 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
         min_value=40,
         max_value=90,
         exists_fn=lambda device: device.type != DreoDeviceType.HUMIDIFIER and device.is_feature_supported("target_humidity"),
+    ),
+    DreoNumberEntityDescription(
+        key="Ambient Light Threshold Low",
+        translation_key="ambient_light_threshold_low",
+        attr_name="rgbth_low",
+        icon="mdi:water-percent",
+        min_value=0,
+        max_value=100,
+        step=1,
+        exists_fn=lambda device: device.type == DreoDeviceType.HUMIDIFIER and device.is_feature_supported("rgbth"),
+    ),
+    DreoNumberEntityDescription(
+        key="Ambient Light Threshold High",
+        translation_key="ambient_light_threshold_high",
+        attr_name="rgbth_high",
+        icon="mdi:water-percent",
+        min_value=0,
+        max_value=100,
+        step=1,
+        exists_fn=lambda device: device.type == DreoDeviceType.HUMIDIFIER and device.is_feature_supported("rgbth"),
     )
 )
 
