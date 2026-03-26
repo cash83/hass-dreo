@@ -17,7 +17,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     "HomeAssistant EntryPoint"
     _LOGGER.debug("async_setup_entry: Starting setup")
 
-    _LOGGER.debug("async_setup_entry: Username: %s", config_entry.data.get(CONF_USERNAME))
     username = config_entry.data.get(CONF_USERNAME)
     password = config_entry.data.get(CONF_PASSWORD)
     auto_reconnect = config_entry.options.get(CONF_AUTO_RECONNECT)
