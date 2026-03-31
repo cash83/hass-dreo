@@ -146,6 +146,36 @@ class TestDreoAirCirculator(IntegrationTestBase):
             switches = switch.get_entries([pydreo_fan])
             self.verify_expected_entities(switches, ['Adaptive Brightness', 'Horizontally Oscillating', 'Panel Sound', 'Vertically Oscillating'])
 
+    def test_HAF004S_old_rev(self):  # pylint: disable=invalid-name
+        """Test HAF004S old hardware revision (SC95F8613B MCU).
+
+        The override_fn should clamp the vertical angle range to (0, 90) since this
+        chip cannot physically reach negative vertical angles.
+        """
+        with patch(PATCH_SCHEDULE_UPDATE_HA_STATE):
+            self.get_devices_file_name = "get_devices_HAF004S_2REVS.json"
+            self.pydreo_manager.load_devices()
+            assert len(self.pydreo_manager.devices) == 2
+
+            pydreo_fan = self.pydreo_manager.devices[0]
+            assert pydreo_fan.model == "DR-HAF004S"
+            assert pydreo_fan.vertical_angle_range == (0, 90)
+
+    def test_HAF004S_new_rev(self):  # pylint: disable=invalid-name
+        """Test HAF004S new hardware revision (SC95F8613B-2/US MCU).
+
+        The override_fn should not fire; the vertical angle range comes directly
+        from the swingAngle data in the API response, giving the full (-30, 90) range.
+        """
+        with patch(PATCH_SCHEDULE_UPDATE_HA_STATE):
+            self.get_devices_file_name = "get_devices_HAF004S_2REVS.json"
+            self.pydreo_manager.load_devices()
+            assert len(self.pydreo_manager.devices) == 2
+
+            pydreo_fan = self.pydreo_manager.devices[1]
+            assert pydreo_fan.model == "DR-HAF004S"
+            assert pydreo_fan.vertical_angle_range == (-30, 90)
+
     def test_HPF007S(self):  # pylint: disable=invalid-name
         """Test test_HPF007S fan."""
         with patch(PATCH_SCHEDULE_UPDATE_HA_STATE) as mock_update_ha_state:
