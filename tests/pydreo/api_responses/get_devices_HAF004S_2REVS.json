@@ -9,7 +9,7 @@
     "list": [
       {
         "deviceId": "1692009631610630147",
-        "sn": "HAF004S_OLD_REV",
+        "sn": "HAF004S_2REVS_OLD_REV",
         "brand": "Dreo",
         "model": "DR-HAF004S",
         "productId": "**REDACTED**",
@@ -647,7 +647,7 @@
       },
       {
         "deviceId": "1692009631610630148",
-        "sn": "HAF004S_NEW_REV",
+        "sn": "HAF004S_2REVS_NEW_REV",
         "brand": "Dreo",
         "model": "DR-HAF004S",
         "productId": "**REDACTED**",
