@@ -15,6 +15,7 @@ from .pydreo.pydreobasedevice import PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType
 from .dreobasedevice import DreoBaseDeviceHA
 
+from .translation_helper import translated_name
 from .const import (
     DOMAIN,
     PYDREO_MANAGER
@@ -148,7 +149,7 @@ NUMBERS: tuple[DreoNumberEntityDescription, ...] = (
     )
 )
 
-def get_entries(pydreo_devices : list[PyDreoBaseDevice]) -> list[DreoNumberHA]:
+def get_entries(pydreo_devices : list[PyDreoBaseDevice], lang: str = "en") -> list[DreoNumberHA]:
     """Add Number entries for Dreo devices."""
     number_ha_collection : list[DreoNumberHA] = []
     
@@ -180,9 +181,9 @@ def get_entries(pydreo_devices : list[PyDreoBaseDevice]) -> list[DreoNumberHA]:
                         native_unit_of_measurement=number_definition.native_unit_of_measurement,
                         exists_fn=number_definition.exists_fn,
                     )
-                    number_ha_collection.append(DreoNumberHA(pydreo_device, dned))
+                    number_ha_collection.append(DreoNumberHA(pydreo_device, dned, lang))
                 else:
-                    number_ha_collection.append(DreoNumberHA(pydreo_device,number_definition))
+                    number_ha_collection.append(DreoNumberHA(pydreo_device, number_definition, lang))
     
     return number_ha_collection
 
@@ -216,22 +217,24 @@ async def async_setup_entry(
 
     pydreo_manager : PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
 
-    async_add_entities(get_entries(pydreo_manager.devices))
+    lang = hass.config.language
+    async_add_entities(get_entries(pydreo_manager.devices, lang))
 
 
 class DreoNumberHA(DreoBaseDeviceHA, NumberEntity): # pylint: disable=abstract-method
     """Representation of a Number describing a read-only property of a Dreo device."""
 
-    def __init__(self, 
+    def __init__(self,
                     pyDreoDevice: PyDreoBaseDevice,
-                    description: DreoNumberEntityDescription) -> None:
+                    description: DreoNumberEntityDescription,
+                    lang: str = "en") -> None:
         super().__init__(pyDreoDevice)
         self.device = pyDreoDevice
 
         # Note this is a "magic" HA property.  Don't rename
         self.entity_description = description
 
-        self._attr_name = super().name + " " + description.key
+        self._attr_name = translated_name(lang, "number", description.translation_key, description.key)
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
 
         self._attr_native_min_value = description.min_value
@@ -242,7 +245,7 @@ class DreoNumberHA(DreoBaseDeviceHA, NumberEntity): # pylint: disable=abstract-m
 
         _LOGGER.info(
             "new DreoNumberHA instance(%s), unique ID %s",
-            self._attr_name,
+            description.key,
             self._attr_unique_id)
 
     def __repr__(self):

@@ -17,6 +17,7 @@ from .pydreo import PyDreo, PyDreoBaseDevice
 from .pydreo.constant import DreoDeviceType
 
 from .const import DOMAIN, PYDREO_MANAGER
+from .translation_helper import translated_name, translated_device_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -129,7 +130,7 @@ SWITCHES: tuple[DreoSwitchEntityDescription, ...] = (
     )  
 )
 
-def get_entries(pydreo_devices : list[PyDreoBaseDevice]) -> list[DreoSwitchHA]:
+def get_entries(pydreo_devices : list[PyDreoBaseDevice], lang: str = "en") -> list[DreoSwitchHA]:
     """Get the Dreo Switches for the devices.
     
     Iterates through all Dreo devices and creates switch entities for each supported
@@ -161,7 +162,7 @@ def get_entries(pydreo_devices : list[PyDreoBaseDevice]) -> list[DreoSwitchHA]:
                 
                 _LOGGER.debug("get_entries: Adding switch %s", switch_definition.key)
                 switch_keys.append(switch_definition.key)
-                switch_ha_collection.append(DreoSwitchHA(pydreo_device, switch_definition))
+                switch_ha_collection.append(DreoSwitchHA(pydreo_device, switch_definition, lang))
 
     return switch_ha_collection
 
@@ -190,7 +191,8 @@ async def async_setup_entry(
             switch_entities_ha.append(DreoChefMakerHA(pydreo_device))
     
     # Add standard feature switches for all devices
-    switch_entities_to_add = get_entries(pydreo_manager.devices)
+    lang = hass.config.language
+    switch_entities_to_add = get_entries(pydreo_manager.devices, lang)
     switch_entities_ha.extend(switch_entities_to_add)
 
     # Register all switch entities with Home Assistant
@@ -200,9 +202,10 @@ class DreoSwitchHA(DreoBaseDeviceHA, SwitchEntity):
     """Representation of a Switch describing a read-write property of a Dreo device."""
 
     def __init__(
-        self, 
-        pydreo_base_device: PyDreoBaseDevice, 
-        description: DreoSwitchEntityDescription
+        self,
+        pydreo_base_device: PyDreoBaseDevice,
+        description: DreoSwitchEntityDescription,
+        lang: str = "en",
     ) -> None:
         super().__init__(pydreo_base_device)
         self.pydreo_device = pydreo_base_device
@@ -210,7 +213,7 @@ class DreoSwitchHA(DreoBaseDeviceHA, SwitchEntity):
         # Note this is a "magic" HA property.  Don't rename
         self.entity_description = description
 
-        self._attr_name = super().name + " " + description.key
+        self._attr_name = translated_name(lang, "switch", description.translation_key, description.key)
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
 
         _LOGGER.info(
