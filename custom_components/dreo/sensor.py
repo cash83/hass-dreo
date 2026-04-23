@@ -30,7 +30,6 @@ from .pydreo.pydreoevaporativecooler import (
 
 from .haimports import *  # pylint: disable=W0401,W0614
 
-from .translation_helper import translated_name, translated_device_name
 from .const import (
     DOMAIN,
     PYDREO_MANAGER,
@@ -126,8 +125,16 @@ SENSORS: tuple[DreoSensorEntityDescription, ...] = (
         exists_fn=lambda device: device.is_feature_supported(WATER_LEVEL_STATUS_KEY),
     ),
     DreoSensorEntityDescription(
+        key="Ambient Light Humidifier",
+        translation_key="light_hm",
+        device_class=SensorDeviceClass.ENUM,
+        options=[LIGHT_ON, LIGHT_OFF],
+        value_fn=lambda device: device.rgblevel,
+        exists_fn=lambda device: (device.type in { DreoDeviceType.HUMIDIFIER }) and device.is_feature_supported(RGB_LEVEL),
+    ),
+    DreoSensorEntityDescription(
         key="Use since cleaning HM",
-        translation_key="use_hours_HM",
+        translation_key="use_hours_hm",
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement_fn=lambda device: "h",
@@ -136,7 +143,7 @@ SENSORS: tuple[DreoSensorEntityDescription, ...] = (
     ) 
 )
 
-def get_entries(pydreo_devices : list[PyDreoBaseDevice], lang: str = "en") -> list[DreoSensorHA]:
+def get_entries(pydreo_devices : list[PyDreoBaseDevice]) -> list[DreoSensorHA]:
     """Add Sensor entries for Dreo devices."""
     sensor_ha_collection : list[DreoSensorHA] = []
 
@@ -155,7 +162,7 @@ def get_entries(pydreo_devices : list[PyDreoBaseDevice], lang: str = "en") -> li
                 _LOGGER.debug("get_entries: Adding Sensor %s", sensor_definition.key)
                 sensor_keys.append(sensor_definition.key)
 
-                sensor_ha_collection.append(DreoSensorHA(pydreo_device, sensor_definition, lang))
+                sensor_ha_collection.append(DreoSensorHA(pydreo_device, sensor_definition))
 
     return sensor_ha_collection
 
@@ -170,22 +177,22 @@ async def async_setup_entry(
 
     pydreo_manager : PyDreo = hass.data[DOMAIN][PYDREO_MANAGER]
 
-    lang = hass.config.language
-    async_add_entities(get_entries(pydreo_manager.devices, lang))
+    async_add_entities(get_entries(pydreo_manager.devices))
 
 
 class DreoSensorHA(DreoBaseDeviceHA, SensorEntity):
     """Representation of a sensor describing a read-only property of a Dreo device."""
 
+
     def __init__(
-        self, pyDreoDevice: PyDreoBaseDevice, description: DreoSensorEntityDescription, lang: str = "en"
+        self, pyDreoDevice: PyDreoBaseDevice, description: DreoSensorEntityDescription
     ) -> None:
         super().__init__(pyDreoDevice)
         self.device = pyDreoDevice
 
         # Note this is a "magic" HA property.  Don't rename
         self.entity_description = description
-        self._attr_name = translated_name(lang, "sensor", description.translation_key, description.key)
+        self._attr_name = super().name + " " + description.key
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
         if description.native_unit_of_measurement_fn is not None:
             self._attr_native_unit_of_measurement = (

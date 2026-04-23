@@ -1,14 +1,4 @@
 {
-    "device_type": {
-      "Humidifier": "Humidifier",
-      "Dehumidifier": "Dehumidifier",
-      "Fan": "Fan",
-      "Heater": "Heater",
-      "Air Conditioner": "Air Conditioner",
-      "Air Purifier": "Air Purifier",
-      "Chef Maker": "Chef Maker",
-      "Evaporative Cooler": "Evaporative Cooler"
-    },
     "config": {
       "step": {
         "user": {
@@ -37,6 +27,9 @@
       }
     },
     "entity": {
+      "binary_sensor": {
+        "water_empty": { "name": "Water Empty" }
+      },
       "switch": {
         "horizontally_oscillating": { "name": "Horizontal Oscillation" },
         "vertically_oscillating":   { "name": "Vertical Oscillation" },
@@ -55,28 +48,30 @@
         "scheon":                   { "name": "Schedule" }
       },
       "sensor": {
-        "temperature":      { "name": "Temperature" },
-        "humidity":         { "name": "Humidity" },
-        "use_hours":        { "name": "Use Since Cleaning" },
-        "reach_target_temp":{ "name": "Target Temp Reached" },
-        "status":           { "name": "Status" },
-        "pm25":             { "name": "PM2.5" },
-        "water":            { "name": "Water Level" },
-        "use_hours_HM":     { "name": "Use Since Cleaning" }
+        "temperature":       { "name": "Temperature" },
+        "humidity":          { "name": "Humidity" },
+        "use_hours":         { "name": "Use Since Cleaning" },
+        "reach_target_temp": { "name": "Target Temp Reached" },
+        "status":            { "name": "Status" },
+        "pm25":              { "name": "PM2.5" },
+        "water":             { "name": "Water Level" },
+        "use_hours_hm":      { "name": "Use Since Cleaning" },
+        "light_hm":          { "name": "Ambient Light" }
       },
       "number": {
-        "horizontal_angle":               { "name": "Horizontal Angle" },
-        "vertical_angle":                 { "name": "Vertical Angle" },
-        "horizontal_osc_angle_left":      { "name": "Horizontal Oscillation Angle Left" },
-        "horizontal_osc_angle_right":     { "name": "Horizontal Oscillation Angle Right" },
-        "vertical_osc_angle_top":         { "name": "Vertical Oscillation Angle Top" },
-        "vertical_osc_angle_bottom":      { "name": "Vertical Oscillation Angle Bottom" },
-        "osc_angle":                      { "name": "Oscillation Angle" },
-        "horizontal_oscillation_angle":   { "name": "Horizontal Oscillation Angle" },
-        "vertical_oscillation_angle":     { "name": "Vertical Oscillation Angle" },
-        "target_humidity":                { "name": "Target Humidity" },
-        "ambient_light_threshold_low":    { "name": "Ambient Light Threshold Low" },
-        "ambient_light_threshold_high":   { "name": "Ambient Light Threshold High" }
+        "horizontal_angle":             { "name": "Horizontal Angle" },
+        "vertical_angle":               { "name": "Vertical Angle" },
+        "horizontal_osc_angle_left":    { "name": "Horizontal Oscillation Angle Left" },
+        "horizontal_osc_angle_right":   { "name": "Horizontal Oscillation Angle Right" },
+        "vertical_osc_angle_top":       { "name": "Vertical Oscillation Angle Top" },
+        "vertical_osc_angle_bottom":    { "name": "Vertical Oscillation Angle Bottom" },
+        "osc_angle":                    { "name": "Oscillation Angle" },
+        "horizontal_oscillation_angle": { "name": "Horizontal Oscillation Angle" },
+        "vertical_oscillation_angle":   { "name": "Vertical Oscillation Angle" },
+        "target_humidity":              { "name": "Target Humidity" },
+        "ambient_light_threshold_low":  { "name": "Ambient Light Threshold Low" },
+        "ambient_light_threshold_high": { "name": "Ambient Light Threshold High" },
+        "ambient_light_level":          { "name": "Ambient Light Level" }
       },
       "select": {
         "mist_level": {

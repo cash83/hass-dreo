@@ -107,6 +107,12 @@ from homeassistant.components.light import (
     ATTR_RGB_COLOR
 )
 
+from homeassistant.components.binary_sensor import (
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+    BinarySensorDeviceClass
+)
+
 from homeassistant.util.color import (
     value_to_brightness,
     brightness_to_value
