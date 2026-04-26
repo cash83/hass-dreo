@@ -85,7 +85,8 @@ class TestDreoSwitchHA(TestDeviceBase):
             )
 
             sw = DreoSwitchHA(device, desc)
-            assert sw.name == "Test Fan Child Lock"
+            assert sw._attr_has_entity_name is True
+            assert sw._attr_translation_key == "childlockon"
             assert sw.unique_id == "FAN001-Child Lock"
             assert sw.entity_description.key == "Child Lock"
             assert sw.entity_description.icon == "mdi:lock"

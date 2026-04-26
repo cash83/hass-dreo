@@ -88,7 +88,8 @@ class TestDreoNumberHA(TestDeviceBase):
 
             entities = number.get_entries([device])
             angle_number = next(e for e in entities if e.entity_description.key == "Horizontal Angle")
-            assert angle_number.name == "Test Circulator Horizontal Angle"
+            assert angle_number._attr_has_entity_name is True
+            assert angle_number._attr_translation_key == "horizontal_angle"
             assert angle_number.unique_id == "AC001-Horizontal Angle"
             assert angle_number._attr_native_min_value == -60
             assert angle_number._attr_native_max_value == 60
