@@ -117,6 +117,43 @@ class TestPyDreoAirCirculator(TestBase):
             mock_send_command.assert_called_once_with(fan, {OSCMODE_KEY: 0})
         fan.handle_server_update({ REPORTED_KEY: {OSCMODE_KEY: 0} })
 
+    def test_HAF004S_oscillation_angle_validation(self): # pylint: disable=invalid-name
+        """Test that oscillation angle setters reject angles that are too close together."""
+        self.get_devices_file_name = "get_devices_HAF004S.json"
+        self.pydreo_manager.load_devices()
+        fan : PyDreoAirCirculator = self.pydreo_manager.devices[0]
+
+        # Initial cruise_conf is "60,45,0,-45" (top=60, right=45, bottom=0, left=-45)
+        assert fan.vertical_osc_angle_top == 60
+        assert fan.vertical_osc_angle_bottom == 0
+        assert fan.horizontal_osc_angle_right == 45
+        assert fan.horizontal_osc_angle_left == -45
+
+        # Top angle too close to bottom (difference < 30)
+        with pytest.raises(ValueError):
+            fan.vertical_osc_angle_top = 29  # bottom is 0, 29-0=29 < 30
+
+        # Bottom angle too close to top (difference < 30)
+        with pytest.raises(ValueError):
+            fan.vertical_osc_angle_bottom = 31  # top is 60, 60-31=29 < 30
+
+        # Right angle too close to left (difference < 30)
+        with pytest.raises(ValueError):
+            fan.horizontal_osc_angle_right = -16  # left is -45, -16-(-45)=29 < 30
+
+        # Left angle too close to right (difference < 30)
+        with pytest.raises(ValueError):
+            fan.horizontal_osc_angle_left = 16  # right is 45, 45-16=29 < 30
+
+        # Boundary: exactly at MIN_OSC_ANGLE_DIFFERENCE should succeed
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            fan.vertical_osc_angle_top = 30  # bottom is 0, 30-0=30 == MIN
+            mock_send_command.assert_called_once()
+
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            fan.horizontal_osc_angle_right = -15  # left is -45, -15-(-45)=30 == MIN
+            mock_send_command.assert_called_once()
+
     def test_HAF001S(self): # pylint: disable=invalid-name
         """Test HAF001S fan."""
         self.get_devices_file_name = "get_devices_HAF001S.json"
@@ -168,16 +205,17 @@ class TestPyDreoAirCirculator(TestBase):
             fan.fan_speed = 5
 
         # Test oscillation commands
-        # Setting oscillating may trigger both hosc and vosc commands
+        # HAF001S uses hoscon/voscon model. Setting oscillating = True sends
+        # horizontally_oscillating = True AND vertically_oscillating = False (2 commands)
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
             fan.oscillating = True
-            # May send 1 command (oscmode) or 2 commands (hosc + vosc)
-            assert mock_send_command.call_count in (1, 2)
+            assert mock_send_command.call_count == 2
+        fan.handle_server_update({ REPORTED_KEY: {HORIZONTAL_OSCILLATION_KEY: True} })
 
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
             fan.oscillating = False
-            # May send 1 command (oscmode) or 2 commands (hosc + vosc)
-            assert mock_send_command.call_count in (1, 2)
+            assert mock_send_command.call_count == 2
+        fan.handle_server_update({ REPORTED_KEY: {HORIZONTAL_OSCILLATION_KEY: False} })
 
         # Test horizontal oscillation
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
@@ -260,15 +298,16 @@ class TestPyDreoAirCirculator(TestBase):
             fan.fan_speed = 10
 
         # Test oscillation commands
-        # HPF008S oscillating is initially False
+        # HPF008S uses oscmode model. Initially oscillating is False (oscmode=0)
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
             fan.oscillating = True
-            # May not send command if already in desired state
-            assert mock_send_command.call_count >= 0
+            assert mock_send_command.call_count == 1
+        fan.handle_server_update({ REPORTED_KEY: {OSCMODE_KEY: 1} })
 
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
             fan.oscillating = False
-            assert mock_send_command.call_count >= 0
+            assert mock_send_command.call_count == 1
+        fan.handle_server_update({ REPORTED_KEY: {OSCMODE_KEY: 0} })
 
         # Test horizontal oscillation
         with patch(PATCH_SEND_COMMAND) as mock_send_command:

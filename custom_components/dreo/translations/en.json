@@ -55,7 +55,7 @@
         "status":            { "name": "Status" },
         "pm25":              { "name": "PM2.5" },
         "water":             { "name": "Water Level" },
-        "use_hours_HM":      { "name": "Use Since Cleaning" },
+        "use_hours_hm":      { "name": "Use Since Cleaning" },
         "light_hm":          { "name": "Ambient Light" }
       },
       "number": {

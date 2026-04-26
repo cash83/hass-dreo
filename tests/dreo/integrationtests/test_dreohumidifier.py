@@ -136,7 +136,7 @@ class TestDreoHumidifier(IntegrationTestBase):
             # Find the Use since cleaning sensor
             worktime_sensor = None
             for s in sensors:
-                if s.entity_description.key == "Use since cleaning HM" and s.entity_description.translation_key == "use_hours_HM":
+                if s.entity_description.key == "Use since cleaning HM" and s.entity_description.translation_key == "use_hours_hm":
                     worktime_sensor = s
                     break
             

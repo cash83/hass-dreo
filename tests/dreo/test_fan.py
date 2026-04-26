@@ -83,18 +83,18 @@ class TestDreoFanHA(TestDeviceBase):
 
             # Test preset modes
             test_fan.set_preset_mode("normal")
-            assert mocked_pydreo_fan.preset_mode is "normal"
+            assert mocked_pydreo_fan.preset_mode == "normal"
             mock_update_ha_state.assert_called_once()
             mock_update_ha_state.reset_mock()
 
             test_fan.set_preset_mode("natural")
-            assert mocked_pydreo_fan.preset_mode is "natural"
+            assert mocked_pydreo_fan.preset_mode == "natural"
             
             test_fan.set_preset_mode("sleep")
-            assert mocked_pydreo_fan.preset_mode is "sleep"
+            assert mocked_pydreo_fan.preset_mode == "sleep"
             
             test_fan.set_preset_mode("auto")
-            assert mocked_pydreo_fan.preset_mode is "auto"
+            assert mocked_pydreo_fan.preset_mode == "auto"
 
             # Verify preset mode list
             assert test_fan.preset_modes == ['normal', 'natural', 'sleep', 'auto']
