@@ -92,7 +92,6 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._target_humidity = None
         self._sleep_target_humidity = None
         self._ledkepton = None
-        self._ledlevel = None
         self._wrong = None
         self._worktime = None
         self._foglevel = None
@@ -101,6 +100,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._rgbth = None
         self._scheon = None
         self._fog_level = None
+        self._ledlevel = None
 
     def parse_modes(self, details: Dict[str, list]) -> tuple[str, int]:
         """Parse the preset modes from the details."""
@@ -520,6 +520,10 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         val_rgbth = self.get_server_update_key_value(message, RGB_TH)
         if isinstance(val_rgbth, str):
             self._rgbth = val_rgbth
+
+        val_ledlevel = self.get_server_update_key_value(message, LED_LEVEL_KEY)
+        if isinstance(val_ledlevel, int):
+            self._ledlevel = val_ledlevel
 
         val_ledlevel = self.get_server_update_key_value(message, LED_LEVEL_KEY)
         if isinstance(val_ledlevel, int):
