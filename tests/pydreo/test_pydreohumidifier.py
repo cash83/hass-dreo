@@ -267,3 +267,195 @@ class TestPyDreoHumidifier(TestBase):
         with patch(PATCH_SEND_COMMAND) as mock_send_command:
             humidifier.is_on = True
             mock_send_command.assert_called_once_with(humidifier, {POWERON_KEY: True})
+
+    # --- target_humidity setter ---
+
+    def test_target_humidity_setter_sends_command(self):
+        """Test target_humidity setter sends command when value changes."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        assert humidifier.target_humidity == 60
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            humidifier.target_humidity = 70
+            mock_send_command.assert_called_once_with(humidifier, {TARGET_AUTO_HUMIDITY_KEY: 70})
+        assert humidifier.target_humidity == 70
+
+    def test_target_humidity_setter_noop(self):
+        """Test target_humidity setter skips command when value unchanged."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            humidifier.target_humidity = 60  # same as initial
+            mock_send_command.assert_not_called()
+
+    # --- panel_sound property and setter ---
+
+    def test_panel_sound_property(self):
+        """Test panel_sound returns inverse of mute_on."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        # _mute_on loaded from state
+        assert humidifier.panel_sound is not None
+
+    def test_panel_sound_none(self):
+        """Test panel_sound returns None when mute_on is None."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier._mute_on = None  # pylint: disable=protected-access
+        assert humidifier.panel_sound is None
+
+    def test_panel_sound_setter_sends_command(self):
+        """Test panel_sound setter sends muteon command."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier._mute_on = True  # pylint: disable=protected-access
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            humidifier.panel_sound = True  # not value = False, different from _mute_on=True
+            mock_send_command.assert_called_once_with(humidifier, {MUTEON_KEY: False})
+
+    def test_panel_sound_setter_noop(self):
+        """Test panel_sound setter skips when already matching."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier._mute_on = False  # pylint: disable=protected-access
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            humidifier.panel_sound = True  # not value = False, same as _mute_on
+            mock_send_command.assert_not_called()
+
+    # --- mode property with name resolution ---
+
+    def test_mode_property_resolves_name(self):
+        """Test mode property resolves numeric mode to string name."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        # Set mode to a known numeric value
+        humidifier._mode = 1  # pylint: disable=protected-access
+        assert humidifier.mode == 'auto'
+
+    def test_mode_property_returns_none_for_unknown(self):
+        """Test mode property returns None for unrecognized numeric value."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier._mode = 999  # pylint: disable=protected-access
+        assert humidifier.mode is None
+
+    # --- mode setter ---
+
+    def test_mode_setter_noop(self):
+        """Test mode setter skips command when value unchanged."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        # Set mode via websocket first
+        humidifier.handle_server_update({REPORTED_KEY: {MODE_KEY: 0}})
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            humidifier.mode = 'manual'  # value 0, same as current
+            mock_send_command.assert_not_called()
+
+    def test_mode_setter_raises_for_invalid(self):
+        """Test mode setter raises ValueError for invalid mode name."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        import pytest
+        with pytest.raises(ValueError, match="not in the acceptable list"):
+            humidifier.mode = 'turbo'
+
+    def test_mode_setter_raises_when_no_modes(self):
+        """Test mode setter raises NotImplementedError when modes not supported."""
+        self.get_devices_file_name = "get_devices_HHM015S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        import pytest
+        with pytest.raises(NotImplementedError, match="doesn't support modes"):
+            humidifier.mode = 'manual'
+
+    # --- wrong property ---
+
+    def test_wrong_property(self):
+        """Test wrong property returns water level status."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        assert humidifier.wrong == "Ok"
+
+    # --- rgblevel property ---
+
+    def test_rgblevel_property(self):
+        """Test rgblevel property returns RGB level status."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        assert humidifier.rgblevel is not None
+
+    # --- scheon property and setter ---
+
+    def test_scheon_property(self):
+        """Test scheon property returns schedule state."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        assert humidifier.scheon is not None
+
+    def test_scheon_setter_sends_command(self):
+        """Test scheon setter sends command when value changes."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier._scheon = False  # pylint: disable=protected-access
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            humidifier.scheon = True
+            mock_send_command.assert_called_once_with(humidifier, {SCHEDULE_ENABLE: True})
+
+    def test_scheon_setter_noop(self):
+        """Test scheon setter skips command when value unchanged."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier._scheon = True  # pylint: disable=protected-access
+        with patch(PATCH_SEND_COMMAND) as mock_send_command:
+            humidifier.scheon = True
+            mock_send_command.assert_not_called()
+
+    # --- handle_server_update for additional keys ---
+
+    def test_handle_server_update_water_level(self):
+        """Test handle_server_update processes water level status."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier.handle_server_update({REPORTED_KEY: {"wrong": 1}})
+        assert humidifier.wrong == "Empty"
+        assert humidifier.water_level == "Empty"
+
+    def test_handle_server_update_rgblevel(self):
+        """Test handle_server_update processes rgblevel."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier.handle_server_update({REPORTED_KEY: {"rgblevel": 2}})
+        assert humidifier.rgblevel == "Enable"
+
+    def test_handle_server_update_scheon(self):
+        """Test handle_server_update processes scheon."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier.handle_server_update({REPORTED_KEY: {SCHEDULE_ENABLE: True}})
+        assert humidifier.scheon is True
+
+    def test_handle_server_update_muteon(self):
+        """Test handle_server_update processes muteon."""
+        self.get_devices_file_name = "get_devices_HHM001S.json"
+        self.pydreo_manager.load_devices()
+        humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
+        humidifier.handle_server_update({REPORTED_KEY: {MUTEON_KEY: False}})
+        assert humidifier._mute_on is False  # pylint: disable=protected-access

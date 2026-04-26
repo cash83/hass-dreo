@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from .imports import * # pylint: disable=W0401,W0614
 from .testbase import TestBase, PATCH_SEND_COMMAND
+from custom_components.dreo.pydreo.pydreofanbase import PyDreoFanBase
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -523,3 +524,40 @@ class TestPyDreoFanBase(TestBase):
         fan = self._load_htf005s()
         fan._preset_modes = None  # pylint: disable=protected-access
         assert fan.preset_modes is None
+
+    # --- parse_preset_modes raises NotImplementedError ---
+    def test_parse_preset_modes_raises(self):
+        """Test parse_preset_modes raises NotImplementedError (must be overridden)."""
+        fan = self._load_htf005s()
+        with pytest.raises(NotImplementedError):
+            PyDreoFanBase.parse_preset_modes(fan, {})
+
+    # --- preset_mode returns None for unrecognized numeric value ---
+    def test_preset_mode_returns_none_for_unknown_value(self):
+        """Test preset_mode returns None when name lookup yields no match."""
+        fan = self._load_htf005s()
+        fan._wind_type = 999  # pylint: disable=protected-access
+        assert fan.preset_mode is None
+
+    # --- oscillating property/setter raise NotImplementedError ---
+    def test_oscillating_property_raises(self):
+        """Test oscillating property raises NotImplementedError on base class."""
+        fan = self._load_htf005s()
+        with pytest.raises(NotImplementedError):
+            PyDreoFanBase.oscillating.fget(fan)
+
+    def test_oscillating_setter_raises(self):
+        """Test oscillating setter raises NotImplementedError on base class."""
+        fan = self._load_htf005s()
+        with pytest.raises(NotImplementedError):
+            PyDreoFanBase.oscillating.fset(fan, True)
+
+    # --- update_state with no fan speed ---
+    def test_update_state_no_fan_speed(self):
+        """Test update_state logs error when fan speed is missing from state."""
+        fan = self._load_htf005s()
+        state = {
+            POWERON_KEY: {"state": True},
+        }
+        fan.update_state(state)
+        assert fan.is_on is True
