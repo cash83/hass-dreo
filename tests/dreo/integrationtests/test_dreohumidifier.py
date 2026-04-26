@@ -47,7 +47,7 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what numbers are added to humidifiers
             numbers = number.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(numbers, ["Fog Level", "Sleep Target Humidity"])
+            self.verify_expected_entities(numbers, ["Fog Level", "Sleep Target Humidity", "Ambient Light Threshold High", "Ambient Light Threshold Low"])
 
             # Check to see what sensors are added
             sensors = sensor.get_entries([pydreo_humidifier])
@@ -118,7 +118,7 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what numbers are added to humidifiers
             numbers = number.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(numbers, ["Fog Level", "Sleep Target Humidity"])
+            self.verify_expected_entities(numbers, ["Fog Level", "Sleep Target Humidity", "Ambient Light Threshold High", "Ambient Light Threshold Low"])
 
             # Check to see what sensors are added - should include Humidity, and worktime
             sensors = sensor.get_entries([pydreo_humidifier])
@@ -173,7 +173,7 @@ class TestDreoHumidifier(IntegrationTestBase):
 
             # Check to see what numbers are added to humidifiers
             numbers = number.get_entries([pydreo_humidifier])
-            self.verify_expected_entities(numbers, ["Fog Level", "Sleep Target Humidity"])
+            self.verify_expected_entities(numbers, ["Fog Level", "Sleep Target Humidity", "Ambient Light Threshold High", "Ambient Light Threshold Low"])
 
             # Check to see what sensors are added
             sensors = sensor.get_entries([pydreo_humidifier])
