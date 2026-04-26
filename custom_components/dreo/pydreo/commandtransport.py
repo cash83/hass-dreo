@@ -111,32 +111,33 @@ class CommandTransport:
         _LOGGER.info("_start_websocket: Starting WebSocket for incoming changes and commands.")
         self._loop = asyncio.get_event_loop()
         self._ws_send_lock = asyncio.Lock()
-        # open websocket
-        url = f"wss://wsb-{self._api_server_region}.dreo-tech.com/websocket?accessToken={self._token}&timestamp={Helpers.api_timestamp()}"
-        try:
-            async for ws in websockets.connect(url):
-                
-                if self._signal_close:
-                    _LOGGER.info("_start_websocket: Transport has been stopped")
-                    break # This break causes us not to connect
-                
-                try:
-                    self._ws = ws
-                    _LOGGER.info("_start_websocket: WebSocket successfully opened")
-                    await self._ws_handler(ws)
-                except websockets.exceptions.ConnectionClosed:
-                    pass
 
-                if not self._auto_reconnect:
-                    _LOGGER.error("_start_websocket: WebSocket appears closed.  Not Reconnecting.  Restart HA to reconnect.")
-                    break # This break causes us not to connect
-                else:
-                    continue
-        except Exception as ex:  # pylint: disable=broad-except
-            _LOGGER.error("_start_websocket: WebSocket connection failed: %s", ex)
+        while not self._signal_close:
+            # Rebuild URL each attempt so a refreshed token is always used
+            url = f"wss://wsb-{self._api_server_region}.dreo-tech.com/websocket?accessToken={self._token}&timestamp={Helpers.api_timestamp()}"
+            try:
+                async for ws in websockets.connect(url):
+                    if self._signal_close:
+                        _LOGGER.info("_start_websocket: Transport has been stopped")
+                        break
+
+                    try:
+                        self._ws = ws
+                        _LOGGER.info("_start_websocket: WebSocket successfully opened")
+                        await self._ws_handler(ws)
+                    except websockets.exceptions.ConnectionClosed:
+                        pass
+
+                    break  # Exit inner loop; outer while handles reconnect with fresh URL
+            except Exception as ex:  # pylint: disable=broad-except
+                _LOGGER.error("_start_websocket: WebSocket connection failed: %s", ex)
+
+            if not self._auto_reconnect:
+                _LOGGER.error("_start_websocket: WebSocket appears closed.  Not Reconnecting.  Restart HA to reconnect.")
+                break
 
         self._loop = None
-        _LOGGER.info("_start_websocket: Transport has been stopped and thread done")  
+        _LOGGER.info("_start_websocket: Transport has been stopped and thread done")
 
     async def _ws_handler(self, ws):
         consumer_task = asyncio.create_task(self._ws_consumer_handler(ws))

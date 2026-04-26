@@ -243,7 +243,8 @@ class DreoNumberHA(DreoBaseDeviceHA, NumberEntity): # pylint: disable=abstract-m
         # Note this is a "magic" HA property.  Don't rename
         self.entity_description = description
 
-        self._attr_name = translated_name(lang, "number", description.translation_key, description.key)
+        entity_name = translated_name(lang, "number", description.translation_key, description.key)
+        self._attr_name = f"{pyDreoDevice.name} {entity_name}"
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
 
         self._attr_native_min_value = description.min_value

@@ -207,7 +207,8 @@ class DreoSwitchHA(DreoBaseDeviceHA, SwitchEntity):
         # Note this is a "magic" HA property.  Don't rename
         self.entity_description = description
 
-        self._attr_name = translated_name(lang, "switch", description.translation_key, description.key)
+        entity_name = translated_name(lang, "switch", description.translation_key, description.key)
+        self._attr_name = f"{pydreo_base_device.name} {entity_name}"
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
 
         _LOGGER.info(
