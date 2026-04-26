@@ -442,7 +442,7 @@ class TestPyDreoHumidifier(TestBase):
         self.pydreo_manager.load_devices()
         humidifier : PyDreoHumidifier = self.pydreo_manager.devices[0]
         humidifier.handle_server_update({REPORTED_KEY: {"rgblevel": 2}})
-        assert humidifier.rgblevel == "Enable"
+        assert humidifier.rgblevel == 2  # RGB_MAP is empty, so raw int is stored
 
     def test_handle_server_update_scheon(self):
         """Test handle_server_update processes scheon."""

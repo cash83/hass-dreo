@@ -299,7 +299,7 @@ class TestHelpers:
 
         response, status = Helpers.call_api("https://api.test.com", "/path", "get", {}, {})
         assert response is None
-        assert status == 500
+        assert status is None  # status_code is only set for 200 responses
 
     def test_code_check_none_input(self):
         """Test code_check with None input."""

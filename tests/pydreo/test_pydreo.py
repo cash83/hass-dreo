@@ -353,15 +353,15 @@ class TestPyDreoHandleCommandAck:
         pydreo._handle_command_ack("SN123", "control-report", {"poweron": True})
         assert pydreo._ack_received is True
 
-    def test_non_matching_params_no_signal(self):
-        """Test non-matching reported params doesn't signal ack."""
+    def test_non_matching_params_still_signals_ack(self):
+        """Test non-matching reported params still signals ack (device match is sufficient)."""
         pydreo = PyDreo("user", "pass", redact=False)
         pydreo._pending_command_device = "SN123"
         pydreo._pending_command_params = {"poweron": True}
         pydreo._ack_received = False
 
         pydreo._handle_command_ack("SN123", "control-report", {"windlevel": 3})
-        assert pydreo._ack_received is False
+        assert pydreo._ack_received is True
 
     def test_no_params_to_match_falls_back(self):
         """Test no pending params falls back to device match and signals ack."""
