@@ -96,6 +96,10 @@ class CommandTransport:
             if self._event_thread.is_alive():
                 _LOGGER.warning("stop_transport: WebSocket thread did not stop within timeout")
 
+    def update_token(self, token: str) -> None:
+        """Update the authentication token used for WebSocket connections."""
+        self._token = token
+
     def testonly_interrupt_transport(self) -> None:
         '''Close down the monitoring socket'''
         _LOGGER.info("testonly_interrupt_transport: Interrupting Transport - May take up to 15s")
