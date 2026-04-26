@@ -12,8 +12,10 @@ from .constant import (
     TARGET_AUTO_HUMIDITY_KEY,
     TARGET_SLEEP_HUMIDITY_KEY,
     FOGLEVEL_KEY,
+    FOG_LEVEL_KEY,
     LEDKEPTON_KEY,
     LEDLEVEL_KEY,
+    LED_LEVEL_KEY,
     RGB_LEVEL,
     RGB_TH,
     SCHEDULE_ENABLE
@@ -98,6 +100,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._last_rgblevel = 1
         self._rgbth = None
         self._scheon = None
+        self._fog_level = None
 
     def parse_modes(self, details: Dict[str, list]) -> tuple[str, int]:
         """Parse the preset modes from the details."""
@@ -159,6 +162,8 @@ class PyDreoHumidifier(PyDreoBaseDevice):
     def target_humidity(self, value: int) -> None:
         """Set the target humidity. Routes to sleep key when in sleep mode."""
         _LOGGER.debug("target_humidity: target_humidity.setter(%s) %s --> %s", self, self._target_humidity, value)
+        if value < 30 or value > 90:
+            raise ValueError(f"Target humidity {value} is out of range (30-90)")
         if self._mode == 2:
             if self._sleep_target_humidity == value:
                 _LOGGER.debug("target_humidity: sleep target already %s, skipping command", value)
@@ -171,6 +176,56 @@ class PyDreoHumidifier(PyDreoBaseDevice):
             return
         self._target_humidity = value
         self._send_command(TARGET_AUTO_HUMIDITY_KEY, value)
+
+    @property
+    def sleep_target_humidity(self):
+        """Get the sleep target humidity."""
+        return self._sleep_target_humidity
+
+    @sleep_target_humidity.setter
+    def sleep_target_humidity(self, value: int) -> None:
+        """Set the sleep target humidity."""
+        _LOGGER.debug(
+            "sleep_target_humidity: sleep_target_humidity.setter(%s) %s --> %s",
+            self,
+            self._sleep_target_humidity,
+            value,
+        )
+        if value < 30 or value > 90:
+            raise ValueError(f"Sleep target humidity {value} is out of range (30-90)")
+        if self._sleep_target_humidity == value:
+            _LOGGER.debug(
+                "sleep_target_humidity: sleep_target_humidity - value already %s, skipping command",
+                value,
+            )
+            return
+        self._sleep_target_humidity = value
+        self._send_command(TARGET_SLEEP_HUMIDITY_KEY, value)
+
+    @property
+    def fog_level(self):
+        """Get the manual fog level (mist intensity)."""
+        return self._fog_level
+
+    @fog_level.setter
+    def fog_level(self, value: int) -> None:
+        """Set the manual fog level (mist intensity)."""
+        _LOGGER.debug(
+            "fog_level: fog_level.setter(%s) %s --> %s",
+            self,
+            self._fog_level,
+            value,
+        )
+        if value < 0 or value > 6:
+            raise ValueError(f"Fog level {value} is out of range (0-6)")
+        if self._fog_level == value:
+            _LOGGER.debug(
+                "fog_level: fog_level - value already %s, skipping command",
+                value,
+            )
+            return
+        self._fog_level = value
+        self._send_command(FOG_LEVEL_KEY, value)
 
     @property
     def panel_sound(self) -> bool:
@@ -302,11 +357,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
 
     @ambient_light_level.setter
     def ambient_light_level(self, value: int) -> None:
-        """Set the ambient light slider value.
-
-        The device accepts a small set of known values (0, 1, 31, 61).
-        Any slider position is snapped to the nearest supported preset.
-        """
+        """Set the ambient light slider value."""
         try:
             requested = int(value)
         except (TypeError, ValueError) as ex:
@@ -369,6 +420,24 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._send_command(RGB_TH, payload)
 
     @property
+    def rgb_indicator(self) -> bool | None:
+        """Return True if the water level RGB indicator is enabled."""
+        if self._rgblevel is None:
+            return None
+        return self._rgblevel == LIGHT_ON
+
+    @rgb_indicator.setter
+    def rgb_indicator(self, value: bool) -> None:
+        """Set the water level RGB indicator on/off."""
+        _LOGGER.debug("rgb_indicator: rgb_indicator.setter(%s) --> %s", self.name, value)
+        new_level = LIGHT_ON if value else LIGHT_OFF
+        if self._rgblevel == new_level:
+            _LOGGER.debug("rgb_indicator: rgb_indicator - value already %s, skipping command", value)
+            return
+        self._rgblevel = new_level
+        self._send_command(RGB_LEVEL, RGB_MAP[new_level])
+
+    @property
     def scheon(self):
         """Returns `True` if the device is on, `False` otherwise."""
         return self._scheon
@@ -413,6 +482,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._rgblevel = self.get_state_update_value(state, RGB_LEVEL)
         self._rgbth = self.get_state_update_value(state, RGB_TH)
         self._scheon = self.get_state_update_value(state, SCHEDULE_ENABLE)
+        self._fog_level = self.get_state_update_value(state, FOG_LEVEL_KEY)
 
     def handle_server_update(self, message):
         """Process a websocket update"""
@@ -451,6 +521,10 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         if isinstance(val_rgbth, str):
             self._rgbth = val_rgbth
 
+        val_ledlevel = self.get_server_update_key_value(message, LED_LEVEL_KEY)
+        if isinstance(val_ledlevel, int):
+            self._ledlevel = val_ledlevel
+
         val_scheon = self.get_server_update_key_value(message, SCHEDULE_ENABLE)
         if isinstance(val_scheon, bool):
             self._scheon = val_scheon
@@ -472,7 +546,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         val_sleep_target_humidity = self.get_server_update_key_value(message, TARGET_SLEEP_HUMIDITY_KEY)
         if isinstance(val_sleep_target_humidity, int):
             self._sleep_target_humidity = val_sleep_target_humidity
-            _LOGGER.debug("handle_server_update: handle_server_update - sleep target_humidity is %s", self._sleep_target_humidity)
+            _LOGGER.debug("handle_server_update: handle_server_update - sleep_target_humidity is %s", self._sleep_target_humidity)
 
         val_ledkepton = self.get_server_update_key_value(message, LEDKEPTON_KEY)
         if isinstance(val_ledkepton, bool):
@@ -481,3 +555,8 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         val_ledlevel = self.get_server_update_key_value(message, LEDLEVEL_KEY)
         if isinstance(val_ledlevel, int):
             self._ledlevel = LEDLEVEL_MAP.get(val_ledlevel, LIGHT_OFF)
+
+        val_fog_level = self.get_server_update_key_value(message, FOG_LEVEL_KEY)
+        if isinstance(val_fog_level, int):
+            self._fog_level = val_fog_level
+            _LOGGER.debug("handle_server_update: handle_server_update - fog_level is %s", self._fog_level)
