@@ -129,7 +129,7 @@ SENSORS: tuple[DreoSensorEntityDescription, ...] = (
         translation_key="light_hm",
         device_class=SensorDeviceClass.ENUM,
         options=[LIGHT_ON, LIGHT_OFF],
-        value_fn=lambda device: device.rgblevel,
+        value_fn=lambda device: LIGHT_ON if device.rgblevel and int(device.rgblevel) > 0 else LIGHT_OFF,
         exists_fn=lambda device: (device.type in { DreoDeviceType.HUMIDIFIER }) and device.is_feature_supported(RGB_LEVEL),
     ),
     DreoSensorEntityDescription(

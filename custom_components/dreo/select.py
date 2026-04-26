@@ -79,6 +79,7 @@ class DreoSelectHA(DreoBaseDeviceHA, SelectEntity):
         self.entity_description = description
 
         self._attr_has_entity_name = True
+        del self._attr_name
         self._attr_translation_key = description.translation_key
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
         self._attr_options = description.options_list

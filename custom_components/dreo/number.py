@@ -261,10 +261,11 @@ class DreoNumberHA(DreoBaseDeviceHA, NumberEntity): # pylint: disable=abstract-m
         self.entity_description = description
 
         self._attr_has_entity_name = True
+        del self._attr_name
         self._attr_translation_key = description.translation_key
         self._attr_unique_id = f"{super().unique_id}-{description.key}"
 
-        self._attr_native_min_value = description.min_value
+        self._attr_native_min_value= description.min_value
         self._attr_native_max_value = description.max_value
         self._attr_native_step = description.step
         self._attr_native_unit_of_measurement = description.native_unit_of_measurement

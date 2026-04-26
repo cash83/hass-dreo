@@ -224,7 +224,7 @@ class TestDreoSwitchHA(TestDeviceBase):
         assert len(entities) == 4
 
         # Verify correct device association
-        fan_switches = [e for e in entities if "Fan" in e.name]
-        heater_switches = [e for e in entities if "Heater" in e.name]
+        fan_switches = [e for e in entities if "Fan" in e.pydreo_device.name]
+        heater_switches = [e for e in entities if "Heater" in e.pydreo_device.name]
         assert len(fan_switches) == 2
         assert len(heater_switches) == 2
