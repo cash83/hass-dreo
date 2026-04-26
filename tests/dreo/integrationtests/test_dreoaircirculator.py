@@ -381,6 +381,77 @@ class TestDreoAirCirculator(IntegrationTestBase):
                 mock_send_command.assert_called_once_with(pydreo_fan, {VERTICAL_OSCILLATION_ANGLE_KEY: 45})
             pydreo_fan.handle_server_update({ REPORTED_KEY: {VERTICAL_OSCILLATION_ANGLE_KEY: 45} })
 
+    def test_HPF020S(self):  # pylint: disable=invalid-name
+        """Test HPF020S fan (Costco 350S pedestal fan)."""
+        with patch(PATCH_SCHEDULE_UPDATE_HA_STATE) as mock_update_ha_state:
+
+            self.get_devices_file_name = "get_devices_HPF020S.json"
+            self.pydreo_manager.load_devices()
+            assert len(self.pydreo_manager.devices) == 1
+
+            pydreo_fan = self.pydreo_manager.devices[0]
+            ha_fan = fan.DreoFanHA(pydreo_fan)
+            assert ha_fan.is_on is False
+            assert ha_fan.speed_count == 9
+            assert ha_fan.supported_features & FanEntityFeature.OSCILLATE
+            assert ha_fan.supported_features & FanEntityFeature.PRESET_MODE
+            assert ha_fan.unique_id is not None
+            assert pydreo_fan.model == "DR-HPF020S"
+            assert pydreo_fan.speed_range == (1, 9)
+
+            # Verify preset modes
+            assert len(ha_fan.preset_modes) == 6
+            assert "normal" in ha_fan.preset_modes
+            assert "custom" in ha_fan.preset_modes
+
+            # Test power on/off
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                ha_fan.turn_on()
+                mock_send_command.assert_called_once_with(pydreo_fan, {POWERON_KEY: True})
+            pydreo_fan.handle_server_update({ REPORTED_KEY: {POWERON_KEY: True} })
+
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                ha_fan.turn_off()
+                mock_send_command.assert_called_once_with(pydreo_fan, {POWERON_KEY: False})
+            pydreo_fan.handle_server_update({ REPORTED_KEY: {POWERON_KEY: False} })
+
+            # Test oscillation (HPF020S uses oscmode)
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                ha_fan.oscillate(True)
+                mock_send_command.assert_called_once_with(pydreo_fan, {OSCMODE_KEY: 1})
+            pydreo_fan.handle_server_update({ REPORTED_KEY: {OSCMODE_KEY: 1} })
+
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                ha_fan.oscillate(False)
+                mock_send_command.assert_called_once_with(pydreo_fan, {OSCMODE_KEY: 0})
+            pydreo_fan.handle_server_update({ REPORTED_KEY: {OSCMODE_KEY: 0} })
+
+            # Test speed range (1-9)
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                ha_fan.set_percentage(100)  # Speed 9 (max)
+                # Fan is off, so this triggers power on + speed
+                assert mock_send_command.call_count == 2
+                calls = [call[0][1] for call in mock_send_command.call_args_list]
+                assert {POWERON_KEY: True} in calls
+                assert {WINDLEVEL_KEY: 9} in calls
+            pydreo_fan.handle_server_update({ REPORTED_KEY: {POWERON_KEY: True, WINDLEVEL_KEY: 9} })
+
+            # Test preset modes
+            with patch(PATCH_SEND_COMMAND) as mock_send_command:
+                ha_fan.set_preset_mode("custom")
+                mock_send_command.assert_called_once_with(pydreo_fan, {WIND_MODE_KEY: 6})
+            pydreo_fan.handle_server_update({ REPORTED_KEY: {WIND_MODE_KEY: 6} })
+
+            # Test cruise_conf angles
+            assert pydreo_fan.vertical_osc_angle_top == 30
+            assert pydreo_fan.horizontal_osc_angle_right == 15
+            assert pydreo_fan.vertical_osc_angle_bottom == 0
+            assert pydreo_fan.horizontal_osc_angle_left == -15
+
+            # Check entities
+            switches = switch.get_entries([pydreo_fan])
+            self.verify_expected_entities(switches, ['Horizontally Oscillating', 'Panel Sound', 'Vertically Oscillating'])
+
     def test_HPF005S(self):  # pylint: disable=invalid-name
         """Test HPF005S fan with hangleadj support."""
         with patch(PATCH_SCHEDULE_UPDATE_HA_STATE) as mock_update_ha_state:
