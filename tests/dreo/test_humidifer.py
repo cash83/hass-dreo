@@ -99,3 +99,33 @@ class TestDreoHumidifier(TestDeviceBase):
             # Test mode switching
             test_dehumidifier.set_mode("manual")
             assert mocked_pydreo_dehumidifier.mode == "manual"
+
+    def test_async_setup_entry(self):
+        """Test async_setup_entry sets up humidifier/dehumidifier entities from hass.data."""
+        import asyncio
+        from unittest.mock import MagicMock
+        from custom_components.dreo.const import DOMAIN, PYDREO_MANAGER
+
+        mocked_devices = [
+            self.create_mock_device(name="Test Humidifier", type="Humidifier"),
+            self.create_mock_device(name="Test Dehumidifier", type="Dehumidifier"),
+            self.create_mock_device(name="Test Fan", type="Tower Fan"),
+        ]
+
+        mock_pydreo = MagicMock()
+        mock_pydreo.devices = mocked_devices
+
+        mock_hass = MagicMock()
+        mock_hass.data = {DOMAIN: {PYDREO_MANAGER: mock_pydreo}}
+
+        mock_config_entry = MagicMock()
+        mock_add_entities = MagicMock()
+
+        asyncio.run(humidifier.async_setup_entry(mock_hass, mock_config_entry, mock_add_entities))
+
+        mock_add_entities.assert_called_once()
+        entities = mock_add_entities.call_args[0][0]
+        assert len(entities) == 2
+        type_names = [type(e).__name__ for e in entities]
+        assert "DreoHumidifierHA" in type_names
+        assert "DreoDehumidifierHA" in type_names
