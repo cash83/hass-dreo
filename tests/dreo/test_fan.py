@@ -194,3 +194,37 @@ class TestDreoFanHA(TestDeviceBase):
             # Test mid-range
             test_fan.set_percentage(50)
             assert mocked_pydreo_fan.fan_speed == 5
+
+    def test_fan_entries_evaporative_cooler(self):
+        """Test the creation of fan entry for evaporative cooler."""
+        with patch(PATCH_UPDATE_HA_STATE):
+            mocked_devices = [
+                self.create_mock_device(name="Test Cooler", type="Evaporative Cooler"),
+            ]
+            entity_list = fan.get_entries(mocked_devices)
+            assert len(entity_list) == 1
+
+    def test_async_setup_entry(self):
+        """Test async_setup_entry sets up fan entities from hass.data."""
+        import asyncio
+        from unittest.mock import MagicMock
+        from custom_components.dreo.const import DOMAIN, PYDREO_MANAGER
+
+        with patch(PATCH_UPDATE_HA_STATE):
+            mocked_fan = self.create_mock_device(name="Test Fan", type="Tower Fan")
+
+            mock_pydreo = MagicMock()
+            mock_pydreo.devices = [mocked_fan]
+
+            mock_hass = MagicMock()
+            mock_hass.data = {DOMAIN: {PYDREO_MANAGER: mock_pydreo}}
+
+            mock_config_entry = MagicMock()
+            mock_add_entities = MagicMock()
+
+            asyncio.run(fan.async_setup_entry(mock_hass, mock_config_entry, mock_add_entities))
+
+            mock_add_entities.assert_called_once()
+            entities = mock_add_entities.call_args[0][0]
+            assert len(entities) == 1
+            assert type(entities[0]).__name__ == "DreoFanHA"
