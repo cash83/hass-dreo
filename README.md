@@ -12,6 +12,10 @@
 
 Unofficial HomeAssistant integration for Dreo brand smart devices. Currently supports most models of Fans, Air Conditioners, Humidifiers, Dehumidifiers and Space Heaters as well as ChefMaker. I do not work for Dreo; just something I'm doing for fun.
 
+> [!IMPORTANT]
+> I only personally own 2 Dreo devices; a tower fan and an air circulator. You'll notice that this project supports way more devices than that. The only way I can continue to do that is if people provide logs and diagnostics when they report issues. Please do your best to fill out the issue template so I can debug.
+
+
 ## hass-dreo vs. the Official Dreo Integration (hass-dreoverse)
 
 Dreo also maintains an [official Home Assistant integration](https://github.com/dreo-team/hass-dreoverse). Here's the short version of how they differ:
