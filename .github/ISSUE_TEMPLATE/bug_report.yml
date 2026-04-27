@@ -2,6 +2,17 @@ name: Bug Report
 description: Create a report to help us improve
 labels: ["bug"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ Logs and diagnostics are essential
+
+        I only personally own 2 Dreo devices. This project supports many more than that, and the **only** way I can debug issues with devices I don't own is if you provide logs and diagnostics. Bug reports without this information are very difficult to act on and may be closed.
+
+        Please follow the [debugging instructions](https://github.com/JeffSteinbok/hass-dreo?tab=readme-ov-file#debugging) to collect:
+        1. **Diagnostics JSON** — download from Settings → Devices → Dreo → ⋮ → Download diagnostics
+        2. **Debug logs** — enable debug logging, reproduce the issue, then download full logs
+
   - type: textarea
     id: description
     attributes:
@@ -35,11 +46,12 @@ body:
     attributes:
       label: Diagnostics
       description: >
-        Attach your diagnostics JSON file here.
+        Attach your diagnostics JSON file here. This is **required** and is the most important
+        piece of information for debugging. Without it, we cannot see your device configuration.
         See [how to download diagnostics](https://github.com/JeffSteinbok/hass-dreo?tab=readme-ov-file#debugging)
         for instructions.
     validations:
-      required: false
+      required: true
 
   - type: checkboxes
     id: diagnostics-confirm
@@ -52,13 +64,14 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: Logs
+      label: Debug Logs
       description: >
-        Paste any relevant log output.
+        Enable debug logging, reproduce the issue, then paste relevant log output here.
+        This is **required** — without logs we cannot diagnose most issues.
         See [debugging instructions](https://github.com/JeffSteinbok/hass-dreo?tab=readme-ov-file#debugging).
       render: text
     validations:
-      required: false
+      required: true
 
   - type: textarea
     id: screenshots
