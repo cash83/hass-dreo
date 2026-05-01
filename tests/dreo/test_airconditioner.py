@@ -204,6 +204,62 @@ class TestDreoAirConditionerHA(TestDeviceBase):
             ac.turn_off()
             assert device.poweron is False
 
+    def test_ac_fan_modes_are_strings(self):
+        """Test that fan_modes list contains strings, not DreoACFanMode enums.
+
+        Regression test for: TypeError: sequence item 0: expected str instance,
+        DreoACFanMode found - caused by assigning raw enum values to _attr_fan_modes.
+        """
+        with patch(PATCH_UPDATE_HA_STATE):
+            # Create device definition with DreoACFanMode enum values exactly as
+            # models.py stores them, to reproduce the original regression scenario.
+            device_ranges_obj = MagicMock()
+            device_ranges_obj.__getitem__ = lambda self, key: {
+                TEMP_RANGE: (60, 86),
+                TARGET_TEMP_RANGE: (64, 86),
+                TARGET_TEMP_RANGE_ECO: (75, 86),
+                HUMIDITY_RANGE: (30, 80),
+            }[key]
+            device_definition = MagicMock()
+            device_definition.device_ranges = device_ranges_obj
+            device_definition.swing_modes = [SWING_ON, SWING_OFF]
+            device_definition.fan_modes = [DreoACFanMode.AUTO, DreoACFanMode.LOW, DreoACFanMode.MEDIUM, DreoACFanMode.HIGH]
+
+            device = self.create_mock_device(
+                name="Test AC",
+                serial_number="AC001",
+                type="Air Conditioner",
+                features={
+                    "poweron": True,
+                    "temperature": 72,
+                    "target_temperature": 70,
+                    "mode": DreoACMode.COOL,
+                    "modes": [DreoACMode.COOL, DreoACMode.DRY, DreoACMode.FAN, DreoACMode.SLEEP, DreoACMode.ECO],
+                    "oscon": False,
+                    "oscangle": None,
+                    "fan_mode": DreoACFanMode.AUTO,
+                    "device_id": "ac_device_1",
+                    "device_definition": device_definition,
+                    "brand": "Dreo",
+                    "series_name": "DR-HAC",
+                    "model": "DR-HAC005S",
+                    "product_name": "Air Conditioner",
+                    "device_name": "Test AC",
+                    "humidity": 55,
+                    "target_humidity": 50,
+                    "preset_mode": None,
+                },
+            )
+
+            ac = DreoAirConditionerHA(device)
+            assert ac.fan_modes is not None
+            for mode in ac.fan_modes:
+                assert isinstance(mode, str), f"fan_modes must contain strings, got {type(mode)}: {mode!r}"
+            assert FAN_AUTO in ac.fan_modes
+            assert FAN_LOW in ac.fan_modes
+            assert FAN_MEDIUM in ac.fan_modes
+            assert FAN_HIGH in ac.fan_modes
+
     def test_ac_fan_mode_property(self):
         """Test fan_mode property."""
         with patch(PATCH_UPDATE_HA_STATE):
