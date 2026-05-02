@@ -415,18 +415,19 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         """Return True if the water level RGB indicator is enabled."""
         if self._rgblevel is None:
             return None
-        return self._rgblevel == LIGHT_ON
+        return self._rgblevel > 0
 
     @rgb_indicator.setter
     def rgb_indicator(self, value: bool) -> None:
         """Set the water level RGB indicator on/off."""
         _LOGGER.debug("rgb_indicator: rgb_indicator.setter(%s) --> %s", self.name, value)
-        new_level = LIGHT_ON if value else LIGHT_OFF
-        if self._rgblevel == new_level:
-            _LOGGER.debug("rgb_indicator: rgb_indicator - value already %s, skipping command", value)
+        current = self._rgblevel is not None and self._rgblevel > 0
+        if current == value:
+            _LOGGER.debug("rgb_indicator: value already %s, skipping command", value)
             return
-        self._rgblevel = new_level
-        self._send_command(RGB_LEVEL, RGB_MAP[new_level])
+        send_value = self._last_rgblevel if value else 0
+        self._rgblevel = send_value
+        self._send_command(RGB_LEVEL, send_value)
 
     @property
     def scheon(self):
@@ -505,7 +506,6 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         if isinstance(val_rgblevel, int):
             if val_rgblevel > 0:
                 self._last_rgblevel = val_rgblevel
-            val_rgblevel = RGB_MAP.get(val_rgblevel, val_rgblevel)
             self._rgblevel = val_rgblevel
 
         val_rgbth = self.get_server_update_key_value(message, RGB_TH)
