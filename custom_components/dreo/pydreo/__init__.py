@@ -482,42 +482,20 @@ class PyDreo:  # pylint: disable=function-redefined
 
     def send_command(self, device: PyDreoBaseDevice, params) -> None:
         """Send a command to Dreo servers via the WebSocket."""
+        full_params = {
+            "devicesn": device.serial_number,
+            "method": "control",
+            "params": params,
+            "timestamp": Helpers.api_timestamp(),
+        }
+        content = json.dumps(full_params)
+        _LOGGER.debug("send_command: %s", content)
+
         if self.debug_test_mode:
-            _LOGGER.debug("send_command: Debug Test Mode enabled. Simulating ack...")
+            _LOGGER.debug("send_command: Debug Test Mode is enabled.  Pretending we received the message...")
             self._transport_consume_message({"devicesn": device.serial_number, "method": "control-report", "reported": params})
-            return
-
-        for attempt in range(_MAX_COMMAND_RETRIES + 1):
-            full_params = {
-                "devicesn": device.serial_number,
-                "method": "control",
-                "params": params,
-                "timestamp": Helpers.api_timestamp(),
-            }
-            content = json.dumps(full_params)
-
-            if attempt > 0:
-                _LOGGER.info("send_command: Retry %d for %s: %s", attempt, device.name, params)
-            else:
-                _LOGGER.debug("send_command: %s", content)
-
-            self._reserve_command_slot(device.serial_number, params)
-
-            try:
-                self._transport.send_message(content)
-            except Exception:  # pylint: disable=broad-except
-                self._release_command_slot()
-                raise
-
-            ack_received = self._wait_for_command_ack(device)
-            if ack_received:
-                return  # Success!
-
-            # Timeout - will retry if attempts remain
-            if attempt < _MAX_COMMAND_RETRIES:
-                _LOGGER.warning("send_command: No ack for %s, will retry...", device.name)
-
-        _LOGGER.warning("send_command: Failed after %d retries for %s", _MAX_COMMAND_RETRIES, device.name)
+        else:
+            self._transport.send_message(content)
 
     def _reserve_command_slot(self, device_sn: str, params: dict) -> None:
         """Wait until no other command is in-flight, then reserve slot."""
