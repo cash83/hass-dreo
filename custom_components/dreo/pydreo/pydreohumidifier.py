@@ -42,7 +42,8 @@ LIGHT_OFF = "Disabled"
 
 WATER_LEVEL_STATUS_MAP = {0: WATER_LEVEL_OK, 1: WATER_LEVEL_EMPTY, WATER_LEVEL_OK: 0, WATER_LEVEL_EMPTY: 1}
 
-RGB_LEVEL_PRESETS = (0, 1, 31, 61)
+DEFAULT_RGB_LEVEL = 2
+RGB_LEVEL_PRESETS = (0, 1, DEFAULT_RGB_LEVEL, 31, 61)
 
 RGB_MAP = {}
 
@@ -87,7 +88,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._worktime = None
         self._foglevel = None
         self._rgblevel = None
-        self._last_rgblevel = 1
+        self._last_rgblevel = DEFAULT_RGB_LEVEL
         self._rgbth = None
         self._scheon = None
         self._fog_level = None
@@ -113,6 +114,11 @@ class PyDreoHumidifier(PyDreoBaseDevice):
             modes = None
         _LOGGER.debug("parse_modes: Detected preset modes - %s", modes)
         return modes
+
+    def _remember_rgblevel(self, value: int | None) -> None:
+        """Remember the last known non-off ambient light level."""
+        if isinstance(value, int) and value > 0:
+            self._last_rgblevel = value
 
     @property
     def is_on(self):
@@ -471,6 +477,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         self._worktime = self.get_state_update_value(state, WORKTIME_KEY)
         self._foglevel = self.get_state_update_value(state, FOGLEVEL_INTERNAL_KEY)
         self._rgblevel = self.get_state_update_value(state, RGB_LEVEL)
+        self._remember_rgblevel(self._rgblevel)
         self._rgbth = self.get_state_update_value(state, RGB_TH)
         self._scheon = self.get_state_update_value(state, SCHEDULE_ENABLE)
         self._fog_level = self.get_state_update_value(state, FOG_LEVEL_KEY)
@@ -503,9 +510,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
 
         val_rgblevel = self.get_server_update_key_value(message, RGB_LEVEL)
         if isinstance(val_rgblevel, int):
-            if val_rgblevel > 0:
-                self._last_rgblevel = val_rgblevel
-            val_rgblevel = RGB_MAP.get(val_rgblevel, val_rgblevel)
+            self._remember_rgblevel(val_rgblevel)
             self._rgblevel = val_rgblevel
 
         val_rgbth = self.get_server_update_key_value(message, RGB_TH)
