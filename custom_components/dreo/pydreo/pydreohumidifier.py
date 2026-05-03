@@ -338,7 +338,7 @@ class PyDreoHumidifier(PyDreoBaseDevice):
         if self._rgblevel == desired:
             _LOGGER.debug("ambient_light: value already %s, skipping command", value)
             return
-        self._rgblevel = desired  # optimistic update so HA reflects state immediately
+        self._rgblevel = desired
         self._send_command(RGB_LEVEL, desired)
 
     @property
